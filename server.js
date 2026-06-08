@@ -306,3 +306,165 @@ app.listen(PORT, () => {
     ╚══════════════════════════════════════════════════════════════════╝
     `);
 });
+// Add at the top with other requires
+const fetch = require('node-fetch'); // If using Node < 18
+
+// ============================================
+// AI LESSON GENERATION WITH GROQ
+// ============================================
+
+// Your Groq API Key (get from console.groq.com)
+// NEVER hardcode in production - use environment variables
+const GROQ_API_KEY = process.env.GROQ_API_KEY; // Set this in Render environment variables
+
+async function generateWithAI(prompt) {
+    if (!GROQ_API_KEY) {
+        console.log('No API key found, using template generation');
+        return null;
+    }
+    
+    try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${GROQ_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'mixtral-8x7b-32768', // Free model
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are a robotics curriculum expert for Nigerian secondary schools. Generate detailed, EDP-aligned lesson plans.'
+                    },
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 4000
+            })
+        });
+        
+        const data = await response.json();
+        return data.choices[0].message.content;
+        
+    } catch (error) {
+        console.error('AI API error:', error);
+        return null;
+    }
+}
+
+// New AI endpoint - replace the mock with real AI
+app.post('/api/ai-generate', async (req, res) => {
+    try {
+        const { topic, grade, duration, subject, instructions, enableWebSearch } = req.body;
+        
+        const prompt = `Generate a complete robotics lesson plan with the following specifications:
+
+Topic: ${topic}
+Grade Level: ${grade}
+Duration: ${duration} minutes
+Subject Area: ${subject}
+${instructions ? `Additional Instructions: ${instructions}` : ''}
+
+The lesson plan MUST follow the Engineering Design Process (EDP):
+1. Ask (Define Problem)
+2. Imagine (Brainstorm Solutions)
+3. Plan (Design & Select)
+4. Create (Build Prototype)
+5. Test & Improve (Iterate)
+
+Please include:
+- 4-6 Learning Objectives (SMART format)
+- Complete EDP steps with descriptions
+- 5-7 Safety Protocols specific to this activity
+- Detailed timeline with phases and durations
+- A hands-on experiential activity
+- Materials list (specific components needed)
+- Assessment methods (formative, performance, summative)
+
+Format the response as JSON with these keys: 
+{
+  "metadata": {"title", "classLevel", "duration", "subject", "generatedDate"},
+  "learningObjectives": [],
+  "edpSteps": [],
+  "safetyProtocols": [],
+  "timeline": [{"phase", "duration", "description"}],
+  "experientialActivity": "",
+  "materials": [],
+  "assessment": []
+}`;
+
+        // Try AI generation first
+        let aiResponse = null;
+        if (GROQ_API_KEY) {
+            aiResponse = await generateWithAI(prompt);
+        }
+        
+        let lessonPlan;
+        if (aiResponse) {
+            // Parse AI response (clean up markdown if needed)
+            const cleanedResponse = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+            lessonPlan = JSON.parse(cleanedResponse);
+        } else {
+            // Fallback to template generation
+            lessonPlan = generateTemplateLesson(topic, grade, duration, subject, instructions);
+        }
+        
+        res.json({
+            success: true,
+            data: lessonPlan,
+            source: aiResponse ? 'AI' : 'Template',
+            message: 'Lesson plan generated successfully'
+        });
+        
+    } catch (error) {
+        console.error('Generation error:', error);
+        // Fallback to template on error
+        const lessonPlan = generateTemplateLesson(req.body.topic, req.body.grade, 
+            req.body.duration, req.body.subject, req.body.instructions);
+        res.json({
+            success: true,
+            data: lessonPlan,
+            source: 'Template (Fallback)',
+            message: 'Generated using template (AI temporarily unavailable)'
+        });
+    }
+});
+
+// Template fallback function
+function generateTemplateLesson(topic, grade, duration, subject, instructions) {
+    return {
+        metadata: {
+            title: `📚 ${topic} - Lesson Plan`,
+            classLevel: grade,
+            duration: `${duration} minutes`,
+            subject: subject,
+            generatedDate: new Date().toLocaleDateString()
+        },
+        learningObjectives: [
+            `Understand the core concepts of ${topic}`,
+            `Apply ${topic} principles in hands-on activities`,
+            `Demonstrate proficiency through project work`,
+            `Collaborate effectively in team settings`
+        ],
+        edpSteps: ["Ask", "Imagine", "Plan", "Create", "Test & Improve"],
+        safetyProtocols: [
+            "Follow all lab safety guidelines",
+            "Wear appropriate PPE",
+            "Report accidents immediately",
+            "Keep workspace clean"
+        ],
+        timeline: [
+            { phase: "Introduction", duration: `${Math.floor(duration * 0.1)} min`, description: "Hook and engage" },
+            { phase: "EDP Phases", duration: `${Math.floor(duration * 0.7)} min`, description: "Main activity" },
+            { phase: "Reflection", duration: `${Math.floor(duration * 0.2)} min`, description: "Share and assess" }
+        ],
+        experientialActivity: `🔧 Hands-on challenge related to ${topic}`,
+        materials: ["Basic robotics kit", "Sensors", "Microcontroller", "Jumper wires"],
+        assessment: ["Observation", "Project completion", "Documentation review"],
+        additionalInstructions: instructions || ""
+    };
+}
