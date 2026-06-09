@@ -1,13 +1,13 @@
 // ============================================
-// STEM FORGE BACKEND - PRODUCTION READY
-// For Render.com Deployment
+// STEM FORGE BACKEND - RENDER READY
+// SIMPLIFIED VERSION FOR DEPLOYMENT
 // ============================================
 
-// Load environment variables (safe for both local and production)
+// Safe dotenv loading - won't crash if missing
 try {
     require('dotenv').config();
 } catch (err) {
-    console.log('dotenv not installed - using production environment');
+    console.log('Note: dotenv not installed (this is fine on Render)');
 }
 
 const express = require('express');
@@ -15,7 +15,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 
 const app = express();
-// Use PORT from environment (Render sets this) or default to 3000 for local
 const PORT = process.env.PORT || 3000;
 
 // Enable middleware
@@ -33,19 +32,7 @@ console.log(`Port: ${PORT}`);
 console.log(`AI Enabled: ${!!GROQ_API_KEY}`);
 
 // ============================================
-// GROQ AI CONFIGURATION
-// ============================================
-
-// For Node.js < 18, you may need to install node-fetch
-let fetch;
-if (!globalThis.fetch) {
-    fetch = require('node-fetch');
-} else {
-    fetch = globalThis.fetch;
-}
-
-// ============================================
-// LESSON GENERATION LOGIC
+// MAPPING DICTIONARIES
 // ============================================
 
 const classLevelMap = {
@@ -139,13 +126,6 @@ function generateTimeline(duration) {
         currentTime += phaseDuration;
     }
     
-    if (currentTime !== duration) {
-        const lastPhase = timeline[timeline.length - 1];
-        const adjustedDuration = duration - (timeline.length > 1 ? timeline[timeline.length - 2].end : 0);
-        lastPhase.duration = `${adjustedDuration} min`;
-        lastPhase.end = duration;
-    }
-    
     return timeline;
 }
 
@@ -176,13 +156,13 @@ function getMaterials(subject) {
 
 function getExperientialActivity(subject) {
     const activities = {
-        'robotics': "🤖 ROBOTICS CHALLENGE: Program your robot to navigate an obstacle course. Test three different sensor thresholds.",
-        'electronics': "⚡ CIRCUIT CHALLENGE: Build a circuit that lights an LED when a button is pressed.",
-        'programming': "💻 CODING CHALLENGE: Write a program that responds to sensor input.",
-        'mechanics': "🔩 MECHANICS CHALLENGE: Build a gear train with three different gear ratios.",
-        'physics': "⚛️ PHYSICS CHALLENGE: Design an experiment to test Newton's Second Law.",
-        'chemistry': "🧪 CHEMISTRY CHALLENGE: Synthesize a bioplastic sample.",
-        'engineering': "🏗️ ENGINEERING CHALLENGE: Complete one full EDP cycle."
+        'robotics': "🤖 CHALLENGE: Program your robot to navigate an obstacle course.",
+        'electronics': "⚡ CHALLENGE: Build a circuit that lights an LED when a button is pressed.",
+        'programming': "💻 CHALLENGE: Write a program that responds to sensor input.",
+        'mechanics': "🔩 CHALLENGE: Build a gear train and calculate mechanical advantage.",
+        'physics': "⚛️ CHALLENGE: Design an experiment to test Newton's Second Law.",
+        'chemistry': "🧪 CHALLENCHALLENGE: Synthesize a bioplastic sample.",
+        'engineering': "🏗️ CHALLENGE: Complete one full EDP cycle."
     };
     return activities[subject] || activities['engineering'];
 }
@@ -239,99 +219,18 @@ function generateLessonPlan(data) {
     };
 }
 
-// Template fallback function for AI
-function generateTemplateLesson(topic, grade, duration, subject, instructions) {
-    return {
-        metadata: {
-            title: `📚 ${topic} - Lesson Plan`,
-            classLevel: grade,
-            duration: `${duration} minutes`,
-            subject: subject,
-            generatedDate: new Date().toLocaleDateString()
-        },
-        learningObjectives: [
-            `Understand the core concepts of ${topic}`,
-            `Apply ${topic} principles in hands-on activities`,
-            `Demonstrate proficiency through project work`,
-            `Collaborate effectively in team settings`
-        ],
-        edpSteps: ["Ask", "Imagine", "Plan", "Create", "Test & Improve"],
-        safetyProtocols: [
-            "Follow all lab safety guidelines",
-            "Wear appropriate PPE",
-            "Report accidents immediately",
-            "Keep workspace clean"
-        ],
-        timeline: [
-            { phase: "Introduction", duration: `${Math.floor(duration * 0.1)} min`, description: "Hook and engage" },
-            { phase: "EDP Phases", duration: `${Math.floor(duration * 0.7)} min`, description: "Main activity" },
-            { phase: "Reflection", duration: `${Math.floor(duration * 0.2)} min`, description: "Share and assess" }
-        ],
-        experientialActivity: `🔧 Hands-on challenge related to ${topic}`,
-        materials: ["Basic robotics kit", "Sensors", "Microcontroller", "Jumper wires"],
-        assessment: ["Observation", "Project completion", "Documentation review"],
-        additionalInstructions: instructions || ""
-    };
-}
-
-// ============================================
-// AI LESSON GENERATION WITH GROQ
-// ============================================
-
-async function generateWithAI(prompt) {
-    if (!GROQ_API_KEY) {
-        console.log('No API key found, using template generation');
-        return null;
-    }
-    
-    try {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${GROQ_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: 'mixtral-8x7b-32768',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are a robotics curriculum expert for Nigerian secondary schools. Generate detailed, EDP-aligned lesson plans.'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
-                temperature: 0.7,
-                max_tokens: 4000
-            })
-        });
-        
-        const data = await response.json();
-        if (data.choices && data.choices[0]) {
-            return data.choices[0].message.content;
-        }
-        return null;
-        
-    } catch (error) {
-        console.error('AI API error:', error);
-        return null;
-    }
-}
-
 // ============================================
 // API ENDPOINTS
 // ============================================
 
-// Health check endpoint
+// Health check
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'healthy', 
         message: 'STEM Forge Backend is running!',
         timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development',
-        aiEnabled: !!GROQ_API_KEY
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'development'
     });
 });
 
@@ -343,24 +242,19 @@ app.get('/', (req, res) => {
         version: '2.0.0',
         endpoints: {
             'POST /api/generate': 'Generate a lesson plan',
-            'POST /api/ai-generate': 'Generate AI-powered lesson plan',
-            'GET /api/subjects': 'Get all available subjects',
+            'GET /api/subjects': 'Get all subjects',
             'GET /health': 'Check server status'
         }
     });
 });
 
-// Get all subjects
+// Get subjects
 app.get('/api/subjects', (req, res) => {
-    const subjects = [
-        { id: 'robotics', name: 'Robotics & Automation', icon: '🤖' },
-        { id: 'electronics', name: 'Electronics & Circuits', icon: '⚡' },
-        { id: 'programming', name: 'Programming for Robotics', icon: '💻' },
-        { id: 'mechanics', name: 'Mechanics & Mechanisms', icon: '🔩' },
-        { id: 'physics', name: 'Physics (Forces & Motion)', icon: '⚛️' },
-        { id: 'chemistry', name: 'Chemistry (Materials Science)', icon: '🧪' },
-        { id: 'engineering', name: 'Engineering Design', icon: '🏗️' }
-    ];
+    const subjects = Object.keys(subjectMap).map(key => ({
+        id: key,
+        name: subjectMap[key].name,
+        icon: subjectMap[key].icon
+    }));
     
     res.json({
         success: true,
@@ -368,7 +262,7 @@ app.get('/api/subjects', (req, res) => {
     });
 });
 
-// Generate lesson plan endpoint (template-based)
+// Generate lesson plan
 app.post('/api/generate', (req, res) => {
     try {
         const { classLevel, term, subject, duration, topic, additionalNotes } = req.body;
@@ -392,7 +286,7 @@ app.post('/api/generate', (req, res) => {
         });
         
     } catch (error) {
-        console.error('Generation error:', error);
+        console.error('Error:', error);
         res.status(500).json({
             success: false,
             error: { message: 'Failed to generate lesson plan' }
@@ -400,76 +294,37 @@ app.post('/api/generate', (req, res) => {
     }
 });
 
-// AI Generate lesson plan endpoint
+// AI Generate endpoint (simple version)
 app.post('/api/ai-generate', async (req, res) => {
     try {
-        const { topic, grade, duration, subject, instructions, enableWebSearch } = req.body;
-        
-        const prompt = `Generate a complete robotics lesson plan with the following specifications:
-
-Topic: ${topic}
-Grade Level: ${grade}
-Duration: ${duration} minutes
-Subject Area: ${subject}
-${instructions ? `Additional Instructions: ${instructions}` : ''}
-
-The lesson plan MUST follow the Engineering Design Process (EDP):
-1. Ask (Define Problem)
-2. Imagine (Brainstorm Solutions)
-3. Plan (Design & Select)
-4. Create (Build Prototype)
-5. Test & Improve (Iterate)
-
-Please include:
-- 4-6 Learning Objectives
-- Complete EDP steps with descriptions
-- 5-7 Safety Protocols
-- Detailed timeline with phases and durations
-- A hands-on experiential activity
-- Materials list
-- Assessment methods
-
-Return ONLY valid JSON, no markdown formatting.`;
-
-        let aiResponse = null;
-        if (GROQ_API_KEY) {
-            aiResponse = await generateWithAI(prompt);
-        }
-        
-        let lessonPlan;
-        if (aiResponse) {
-            try {
-                const cleanedResponse = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-                lessonPlan = JSON.parse(cleanedResponse);
-            } catch (parseError) {
-                console.error('JSON parse error:', parseError);
-                lessonPlan = generateTemplateLesson(topic, grade, duration, subject, instructions);
-            }
-        } else {
-            lessonPlan = generateTemplateLesson(topic, grade, duration, subject, instructions);
-        }
+        // For now, use template generation
+        const { topic, grade, duration, subject, instructions } = req.body;
+        const lessonPlan = generateLessonPlan({
+            classLevel: grade?.toLowerCase().replace(' ', '-') || 'grade-9',
+            term: 'term-1',
+            subject: subject?.toLowerCase() || 'robotics',
+            duration: parseInt(duration) || 90,
+            topic: topic,
+            additionalNotes: instructions
+        });
         
         res.json({
             success: true,
             data: lessonPlan,
-            source: aiResponse ? 'AI' : 'Template',
+            source: 'Template',
             message: 'Lesson plan generated successfully'
         });
         
     } catch (error) {
-        console.error('AI generation error:', error);
-        const lessonPlan = generateTemplateLesson(req.body.topic, req.body.grade, 
-            req.body.duration, req.body.subject, req.body.instructions);
-        res.json({
-            success: true,
-            data: lessonPlan,
-            source: 'Template (Fallback)',
-            message: 'Generated using template'
+        console.error('AI error:', error);
+        res.status(500).json({
+            success: false,
+            error: { message: 'Failed to generate lesson plan' }
         });
     }
 });
 
-// Start the server
+// Start server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`
     ╔══════════════════════════════════════════════════════════════════╗
@@ -477,11 +332,8 @@ app.listen(PORT, '0.0.0.0', () => {
     ║   🚀 STEM FORGE BACKEND IS RUNNING!                             ║
     ║                                                                  ║
     ║   📡 Port: ${PORT}                                               ║
-    ║   🩺 Health: http://localhost:${PORT}/health                     ║
-    ║   🤖 AI Enabled: ${!!GROQ_API_KEY}                               ║
-    ║   🌍 Environment: ${process.env.NODE_ENV || 'development'}       ║
-    ║                                                                  ║
-    ║   Press Ctrl+C to stop                                          ║
+    ║   🩺 Health: /health                                            ║
+    ║   🔧 Environment: ${process.env.NODE_ENV || 'development'}       ║
     ║                                                                  ║
     ╚══════════════════════════════════════════════════════════════════╝
     `);
