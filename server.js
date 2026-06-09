@@ -1,4 +1,5 @@
 // ============================================
+<<<<<<< HEAD
 // STEM FORGE BACKEND - PRODUCTION READY
 // For Render.com Deployment
 // ============================================
@@ -8,6 +9,17 @@ try {
     require('dotenv').config();
 } catch (err) {
     console.log('dotenv not installed - using production environment');
+=======
+// STEM FORGE BACKEND - RENDER READY
+// SIMPLIFIED VERSION FOR DEPLOYMENT
+// ============================================
+
+// Safe dotenv loading - won't crash if missing
+try {
+    require('dotenv').config();
+} catch (err) {
+    console.log('Note: dotenv not installed (this is fine on Render)');
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
 }
 
 const express = require('express');
@@ -15,15 +27,28 @@ const cors = require('cors');
 const helmet = require('helmet');
 
 const app = express();
+<<<<<<< HEAD
 // Use PORT from environment (Render sets this) or default to 3000 for local
+=======
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
 const PORT = process.env.PORT || 3000;
 
 // Enable middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: false, // Simplify for deployment
+}));
 app.use(cors());
 app.use(express.json());
 
+// Simple in-memory storage for API key (will be set via environment)
+const GROQ_API_KEY = process.env.GROQ_API_KEY || null;
+
+console.log(`Starting STEM Forge Backend...`);
+console.log(`Port: ${PORT}`);
+console.log(`AI Enabled: ${!!GROQ_API_KEY}`);
+
 // ============================================
+<<<<<<< HEAD
 // GROQ AI CONFIGURATION
 // ============================================
 
@@ -41,6 +66,9 @@ if (!globalThis.fetch) {
 
 // ============================================
 // LESSON GENERATION LOGIC
+=======
+// MAPPING DICTIONARIES
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
 // ============================================
 
 const classLevelMap = {
@@ -68,6 +96,10 @@ const subjectMap = {
     'chemistry': { icon: '🧪', name: 'Chemistry (Materials Science)' },
     'engineering': { icon: '🏗️', name: 'Engineering Design' }
 };
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
 
 function getLearningObjectives(subject, topic) {
     const base = [
@@ -130,6 +162,7 @@ function generateTimeline(duration) {
         currentTime += phaseDuration;
     }
     
+<<<<<<< HEAD
     if (currentTime !== duration) {
         const lastPhase = timeline[timeline.length - 1];
         const adjustedDuration = duration - (timeline.length > 1 ? timeline[timeline.length - 2].end : 0);
@@ -137,36 +170,39 @@ function generateTimeline(duration) {
         lastPhase.end = duration;
     }
     
+=======
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
     return timeline;
 }
 
 function getPhaseDescription(phase) {
     const descriptions = {
-        "Engage & Introduce": "Hook students with a real-world problem. Discuss relevance and spark curiosity.",
-        "EDP - Ask & Imagine": "Students define the problem, ask questions, and brainstorm possible solutions.",
-        "Plan & Design": "Teams select best solution, sketch designs, list materials, and plan build sequence.",
-        "Create & Build": "Hands-on prototyping phase. Students construct their solution following safety protocols.",
-        "Test & Iterate": "Test prototypes, collect data, identify failures, and make improvements.",
-        "Reflect & Share": "Teams present their design process, challenges faced, and final outcomes."
+        "Engage & Introduce": "Hook students with a real-world problem.",
+        "EDP - Ask & Imagine": "Students define the problem and brainstorm solutions.",
+        "Plan & Design": "Teams select best solution and sketch designs.",
+        "Create & Build": "Hands-on prototyping phase.",
+        "Test & Iterate": "Test prototypes and make improvements.",
+        "Reflect & Share": "Teams present their design process."
     };
     return descriptions[phase] || "Active student-centered learning.";
 }
 
 function getMaterials(subject) {
     const materials = {
-        'robotics': ["Microcontroller board (Arduino)", "Ultrasonic/IR sensors", "Motor driver", "DC motors", "Chassis kit", "Jumper wires", "Battery pack"],
-        'electronics': ["Breadboard", "LEDs (various colors)", "Resistors (220Ω, 10kΩ)", "Push buttons", "Transistors", "Multimeter", "Jumper wires"],
-        'programming': ["Computer with IDE installed", "Example code snippets", "Debugging checklist", "Pseudocode templates"],
-        'mechanics': ["Gear set (various sizes)", "Axles", "Cardboard/chassis material", "Hot glue guns", "Rulers", "Weights for testing"],
-        'physics': ["Balloons", "Straws (various diameters)", "Tape", "Cardboard", "Wheels (bottle caps)", "Stopwatch", "Spring scales"],
-        'chemistry': ["Cornstarch", "Water", "Glycerin", "Vinegar", "Hot plate", "Saucepan", "Molds", "Spatula", "Gloves", "Goggles"],
-        'engineering': ["Prototyping materials (cardboard, tape, etc.)", "Measurement tools", "Engineering notebooks", "Design software (optional)"]
+        'robotics': ["Microcontroller board", "Sensors", "Motor driver", "DC motors", "Jumper wires", "Battery pack"],
+        'electronics': ["Breadboard", "LEDs", "Resistors", "Push buttons", "Multimeter", "Jumper wires"],
+        'programming': ["Computer with IDE", "Example code snippets", "Debugging checklist"],
+        'mechanics': ["Gear sets", "Cardboard", "Hot glue guns", "Rulers"],
+        'physics': ["Balloons", "Straws", "Tape", "Cardboard", "Stopwatch"],
+        'chemistry': ["Cornstarch", "Water", "Glycerin", "Hot plate", "Molds"],
+        'engineering': ["Prototyping materials", "Measurement tools", "Engineering notebooks"]
     };
     return materials[subject] || materials['engineering'];
 }
 
 function getExperientialActivity(subject) {
     const activities = {
+<<<<<<< HEAD
         'robotics': "🤖 ROBOTICS CHALLENGE: Program your robot to navigate an obstacle course. Test three different sensor thresholds.",
         'electronics': "⚡ CIRCUIT CHALLENGE: Build a circuit that lights an LED when a button is pressed.",
         'programming': "💻 CODING CHALLENGE: Write a program that responds to sensor input.",
@@ -174,6 +210,15 @@ function getExperientialActivity(subject) {
         'physics': "⚛️ PHYSICS CHALLENGE: Design an experiment to test Newton's Second Law.",
         'chemistry': "🧪 CHEMISTRY CHALLENGE: Synthesize a bioplastic sample.",
         'engineering': "🏗️ ENGINEERING CHALLENGE: Complete one full EDP cycle."
+=======
+        'robotics': "🤖 CHALLENGE: Program your robot to navigate an obstacle course.",
+        'electronics': "⚡ CHALLENGE: Build a circuit that lights an LED when a button is pressed.",
+        'programming': "💻 CHALLENGE: Write a program that responds to sensor input.",
+        'mechanics': "🔩 CHALLENGE: Build a gear train and calculate mechanical advantage.",
+        'physics': "⚛️ CHALLENGE: Design an experiment to test Newton's Second Law.",
+        'chemistry': "🧪 CHALLENCHALLENGE: Synthesize a bioplastic sample.",
+        'engineering': "🏗️ CHALLENGE: Complete one full EDP cycle."
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
     };
     return activities[subject] || activities['engineering'];
 }
@@ -230,6 +275,7 @@ function generateLessonPlan(data) {
     };
 }
 
+<<<<<<< HEAD
 // Template fallback function for AI
 function generateTemplateLesson(topic, grade, duration, subject, instructions) {
     return {
@@ -311,18 +357,29 @@ async function generateWithAI(prompt) {
     }
 }
 
+=======
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
 // ============================================
 // API ENDPOINTS
 // ============================================
 
+<<<<<<< HEAD
 // Health check endpoint
+=======
+// Health check
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'healthy', 
         message: 'STEM Forge Backend is running!',
         timestamp: new Date().toISOString(),
+<<<<<<< HEAD
         environment: process.env.NODE_ENV || 'development',
         aiEnabled: !!GROQ_API_KEY
+=======
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'development'
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
     });
 });
 
@@ -334,13 +391,18 @@ app.get('/', (req, res) => {
         version: '2.0.0',
         endpoints: {
             'POST /api/generate': 'Generate a lesson plan',
+<<<<<<< HEAD
             'POST /api/ai-generate': 'Generate AI-powered lesson plan',
             'GET /api/subjects': 'Get all available subjects',
+=======
+            'GET /api/subjects': 'Get all subjects',
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
             'GET /health': 'Check server status'
         }
     });
 });
 
+<<<<<<< HEAD
 // Get all subjects
 app.get('/api/subjects', (req, res) => {
     const subjects = [
@@ -352,6 +414,15 @@ app.get('/api/subjects', (req, res) => {
         { id: 'chemistry', name: 'Chemistry (Materials Science)', icon: '🧪' },
         { id: 'engineering', name: 'Engineering Design', icon: '🏗️' }
     ];
+=======
+// Get subjects
+app.get('/api/subjects', (req, res) => {
+    const subjects = Object.keys(subjectMap).map(key => ({
+        id: key,
+        name: subjectMap[key].name,
+        icon: subjectMap[key].icon
+    }));
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
     
     res.json({
         success: true,
@@ -359,7 +430,11 @@ app.get('/api/subjects', (req, res) => {
     });
 });
 
+<<<<<<< HEAD
 // Generate lesson plan endpoint (template-based)
+=======
+// Generate lesson plan
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
 app.post('/api/generate', (req, res) => {
     try {
         const { classLevel, term, subject, duration, topic, additionalNotes } = req.body;
@@ -383,7 +458,11 @@ app.post('/api/generate', (req, res) => {
         });
         
     } catch (error) {
+<<<<<<< HEAD
         console.error('Generation error:', error);
+=======
+        console.error('Error:', error);
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
         res.status(500).json({
             success: false,
             error: { message: 'Failed to generate lesson plan' }
@@ -391,6 +470,7 @@ app.post('/api/generate', (req, res) => {
     }
 });
 
+<<<<<<< HEAD
 // AI Generate lesson plan endpoint
 app.post('/api/ai-generate', async (req, res) => {
     try {
@@ -439,15 +519,35 @@ Return ONLY valid JSON, no markdown formatting.`;
         } else {
             lessonPlan = generateTemplateLesson(topic, grade, duration, subject, instructions);
         }
+=======
+// AI Generate endpoint (simple version)
+app.post('/api/ai-generate', async (req, res) => {
+    try {
+        // For now, use template generation
+        const { topic, grade, duration, subject, instructions } = req.body;
+        const lessonPlan = generateLessonPlan({
+            classLevel: grade?.toLowerCase().replace(' ', '-') || 'grade-9',
+            term: 'term-1',
+            subject: subject?.toLowerCase() || 'robotics',
+            duration: parseInt(duration) || 90,
+            topic: topic,
+            additionalNotes: instructions
+        });
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
         
         res.json({
             success: true,
             data: lessonPlan,
+<<<<<<< HEAD
             source: aiResponse ? 'AI' : 'Template',
+=======
+            source: 'Template',
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
             message: 'Lesson plan generated successfully'
         });
         
     } catch (error) {
+<<<<<<< HEAD
         console.error('AI generation error:', error);
         const lessonPlan = generateTemplateLesson(req.body.topic, req.body.grade, 
             req.body.duration, req.body.subject, req.body.instructions);
@@ -456,11 +556,21 @@ Return ONLY valid JSON, no markdown formatting.`;
             data: lessonPlan,
             source: 'Template (Fallback)',
             message: 'Generated using template'
+=======
+        console.error('AI error:', error);
+        res.status(500).json({
+            success: false,
+            error: { message: 'Failed to generate lesson plan' }
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
         });
     }
 });
 
+<<<<<<< HEAD
 // Start the server
+=======
+// Start server
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`
     ╔══════════════════════════════════════════════════════════════════╗
@@ -468,6 +578,7 @@ app.listen(PORT, '0.0.0.0', () => {
     ║   🚀 STEM FORGE BACKEND IS RUNNING!                             ║
     ║                                                                  ║
     ║   📡 Port: ${PORT}                                               ║
+<<<<<<< HEAD
     ║   🩺 Health: http://localhost:${PORT}/health                     ║
     ║   🤖 AI Enabled: ${!!GROQ_API_KEY}                               ║
     ║   🌍 Environment: ${process.env.NODE_ENV || 'development'}       ║
@@ -477,3 +588,11 @@ app.listen(PORT, '0.0.0.0', () => {
     ╚══════════════════════════════════════════════════════════════════╝
     `);
 });
+=======
+    ║   🩺 Health: /health                                            ║
+    ║   🔧 Environment: ${process.env.NODE_ENV || 'development'}       ║
+    ║                                                                  ║
+    ╚══════════════════════════════════════════════════════════════════╝
+    `);
+});
+>>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
