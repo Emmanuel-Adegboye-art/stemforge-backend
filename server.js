@@ -1,6 +1,6 @@
+require('dotenv').config();
 // server.js - STEM Forge Backend
 // Location: C:\Users\Emmanuel Adegboye\Desktop\Web dev\ai foundry\Lesson_plan Generator\Back-End\server.js
-
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
