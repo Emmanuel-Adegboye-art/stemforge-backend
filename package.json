@@ -1,15 +1,14 @@
 {
   "name": "stemforge-backend",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "STEM Forge Backend API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^17.4.2",
     "express": "^4.18.2",
+    "cors": "^2.8.5",
     "helmet": "^7.0.0"
   }
 }
