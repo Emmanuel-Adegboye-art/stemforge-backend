@@ -7,13 +7,9 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.18.2",
-<<<<<<< HEAD
     "helmet": "^7.0.0",
     "node-fetch": "^2.7.0"
-=======
-    "cors": "^2.8.5",
-    "helmet": "^7.0.0"
->>>>>>> 6cbeaf8f8f2f57ce4f9302f73931ae78868b287c
   }
 }
