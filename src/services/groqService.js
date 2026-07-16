@@ -5,9 +5,11 @@ class GroqService {
         this.client = new Groq({ 
             apiKey: process.env.GROQ_API_KEY 
         });
-        this.model = process.env.GROQ_MODEL || 'llama-3.1-7b';
+        this.model = process.env.GROQ_MODEL || 'gpt-3.5-mini';
         this.modelFallbacks = [
             this.model,
+            'gpt-4o-mini',
+            'llama-3.1-7b',
             'llama-3.1-70b',
             'llama-2.1'
         ].filter(Boolean);
@@ -72,6 +74,7 @@ IMPORTANT: Only suggest search terms and sources. Do NOT generate actual images/
     async callGroq(prompt) {
         for (const model of this.modelFallbacks) {
             try {
+                console.log(`Attempting Groq model: ${model}`);
                 const completion = await this.client.chat.completions.create({
                     messages: [
                         { 
@@ -90,9 +93,14 @@ IMPORTANT: Only suggest search terms and sources. Do NOT generate actual images/
             } catch (error) {
                 console.warn(`Groq model ${model} failed:`, error.message || error);
 
-                if (!error.message || !error.message.toLowerCase().includes('model_not_found')) {
+                const errMsg = (error.message || '').toLowerCase();
+                if (!errMsg.includes('model_not_found') && !errMsg.includes('invalid_api_key')) {
                     console.error('Groq error:', error);
                     throw new Error('AI generation failed: ' + error.message);
+                }
+
+                if (errMsg.includes('invalid_api_key')) {
+                    throw new Error('AI generation failed: invalid API key.');
                 }
             }
         }
