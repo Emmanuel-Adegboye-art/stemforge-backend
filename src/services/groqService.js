@@ -11,15 +11,10 @@ class GroqService {
             apiKey
         });
 
-        this.model = process.env.GROQ_MODEL || 'gpt-4o-mini';
-        this.modelFallbacks = [
-            this.model,
-            'gpt-3.5-mini',
-            'gpt-4o',
-            'llama-3.1-7b',
-            'llama-3.1-70b',
-            'llama-2.1'
-        ].filter(Boolean);
+        this.model = process.env.GROQ_MODEL;
+        if (!this.model) {
+            throw new Error('Missing GROQ_MODEL environment variable. Set GROQ_MODEL to a valid Groq model name.');
+        }
     }
     
     async generateLessonPlan(data) {
@@ -79,46 +74,35 @@ IMPORTANT: Only suggest search terms and sources. Do NOT generate actual images/
     }
     
     async callGroq(prompt) {
-        const errors = [];
+        try {
+            console.log(`Attempting Groq model: ${this.model}`);
+            const completion = await this.client.chat.completions.create({
+                messages: [
+                    { 
+                        role: 'system', 
+                        content: 'You are a STEM education expert. Always return valid JSON.' 
+                    },
+                    { role: 'user', content: prompt }
+                ],
+                model: this.model,
+                temperature: 0.7,
+                max_tokens: 4000,
+                response_format: { type: 'json_object' }
+            });
 
-        for (const model of this.modelFallbacks) {
-            try {
-                console.log(`Attempting Groq model: ${model}`);
-                const completion = await this.client.chat.completions.create({
-                    messages: [
-                        { 
-                            role: 'system', 
-                            content: 'You are a STEM education expert. Always return valid JSON.' 
-                        },
-                        { role: 'user', content: prompt }
-                    ],
-                    model,
-                    temperature: 0.7,
-                    max_tokens: 4000,
-                    response_format: { type: 'json_object' }
-                });
+            return JSON.parse(completion.choices[0].message.content);
+        } catch (error) {
+            const errMsg = (error.message || '').toLowerCase();
+            console.warn(`Groq model ${this.model} failed:`, errMsg || error);
 
-                return JSON.parse(completion.choices[0].message.content);
-            } catch (error) {
-                const errMsg = (error.message || '').toLowerCase();
-                console.warn(`Groq model ${model} failed:`, errMsg || error);
-                errors.push({ model, message: errMsg || error.toString() });
-
-                if (errMsg.includes('invalid_api_key')) {
-                    throw new Error('AI generation failed: invalid API key.');
-                }
-
-                if (!errMsg.includes('model_not_found')) {
-                    console.error('Groq error:', error);
-                    throw new Error('AI generation failed: ' + error.message);
-                }
+            if (errMsg.includes('invalid_api_key')) {
+                throw new Error('AI generation failed: invalid API key.');
             }
-        }
 
-        console.error('No accessible Groq models found. Checked models:', errors.map(e => `${e.model}: ${e.message}`).join('; '));
-        const noModelError = new Error('AI generation failed: no accessible Groq models found.');
-        noModelError.details = errors;
-        throw noModelError;
+            const modelError = new Error(`AI generation failed: Groq model ${this.model} does not exist or is not accessible.`);
+            modelError.details = [{ model: this.model, message: errMsg || error.toString() }];
+            throw modelError;
+        }
     }
 }
 
