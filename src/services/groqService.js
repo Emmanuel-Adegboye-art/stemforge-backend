@@ -5,8 +5,12 @@ class GroqService {
         this.client = new Groq({ 
             apiKey: process.env.GROQ_API_KEY 
         });
-        // Use a safe default model; override with GROQ_MODEL in Render if needed.
-        this.model = process.env.GROQ_MODEL || 'llama-3.1';
+        this.model = process.env.GROQ_MODEL || 'llama-3.1-7b';
+        this.modelFallbacks = [
+            this.model,
+            'llama-3.1-70b',
+            'llama-2.1'
+        ].filter(Boolean);
     }
     
     async generateLessonPlan(data) {
@@ -66,26 +70,34 @@ IMPORTANT: Only suggest search terms and sources. Do NOT generate actual images/
     }
     
     async callGroq(prompt) {
-        try {
-            const completion = await this.client.chat.completions.create({
-                messages: [
-                    { 
-                        role: 'system', 
-                        content: 'You are a STEM education expert. Always return valid JSON.' 
-                    },
-                    { role: 'user', content: prompt }
-                ],
-                model: this.model,
-                temperature: 0.7,
-                max_tokens: 4000,
-                response_format: { type: 'json_object' }
-            });
-            
-            return JSON.parse(completion.choices[0].message.content);
-        } catch (error) {
-            console.error('Groq error:', error);
-            throw new Error('AI generation failed: ' + error.message);
+        for (const model of this.modelFallbacks) {
+            try {
+                const completion = await this.client.chat.completions.create({
+                    messages: [
+                        { 
+                            role: 'system', 
+                            content: 'You are a STEM education expert. Always return valid JSON.' 
+                        },
+                        { role: 'user', content: prompt }
+                    ],
+                    model,
+                    temperature: 0.7,
+                    max_tokens: 4000,
+                    response_format: { type: 'json_object' }
+                });
+
+                return JSON.parse(completion.choices[0].message.content);
+            } catch (error) {
+                console.warn(`Groq model ${model} failed:`, error.message || error);
+
+                if (!error.message || !error.message.toLowerCase().includes('model_not_found')) {
+                    console.error('Groq error:', error);
+                    throw new Error('AI generation failed: ' + error.message);
+                }
+            }
         }
+
+        throw new Error('AI generation failed: no accessible Groq models found.');
     }
 }
 
