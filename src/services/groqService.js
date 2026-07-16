@@ -2,13 +2,20 @@ const Groq = require('groq-sdk');
 
 class GroqService {
     constructor() {
-        this.client = new Groq({ 
-            apiKey: process.env.GROQ_API_KEY 
+        const apiKey = process.env.GROQ_API_KEY;
+        if (!apiKey) {
+            throw new Error('Missing GROQ_API_KEY environment variable');
+        }
+
+        this.client = new Groq({
+            apiKey
         });
-        this.model = process.env.GROQ_MODEL || 'gpt-3.5-mini';
+
+        this.model = process.env.GROQ_MODEL || 'gpt-4o-mini';
         this.modelFallbacks = [
             this.model,
-            'gpt-4o-mini',
+            'gpt-3.5-mini',
+            'gpt-4o',
             'llama-3.1-7b',
             'llama-3.1-70b',
             'llama-2.1'
@@ -72,6 +79,8 @@ IMPORTANT: Only suggest search terms and sources. Do NOT generate actual images/
     }
     
     async callGroq(prompt) {
+        const errors = [];
+
         for (const model of this.modelFallbacks) {
             try {
                 console.log(`Attempting Groq model: ${model}`);
@@ -91,20 +100,22 @@ IMPORTANT: Only suggest search terms and sources. Do NOT generate actual images/
 
                 return JSON.parse(completion.choices[0].message.content);
             } catch (error) {
-                console.warn(`Groq model ${model} failed:`, error.message || error);
-
                 const errMsg = (error.message || '').toLowerCase();
-                if (!errMsg.includes('model_not_found') && !errMsg.includes('invalid_api_key')) {
-                    console.error('Groq error:', error);
-                    throw new Error('AI generation failed: ' + error.message);
-                }
+                console.warn(`Groq model ${model} failed:`, errMsg || error);
+                errors.push({ model, message: errMsg || error.toString() });
 
                 if (errMsg.includes('invalid_api_key')) {
                     throw new Error('AI generation failed: invalid API key.');
                 }
+
+                if (!errMsg.includes('model_not_found')) {
+                    console.error('Groq error:', error);
+                    throw new Error('AI generation failed: ' + error.message);
+                }
             }
         }
 
+        console.error('No accessible Groq models found. Checked models:', errors.map(e => `${e.model}: ${e.message}`).join('; '));
         throw new Error('AI generation failed: no accessible Groq models found.');
     }
 }
