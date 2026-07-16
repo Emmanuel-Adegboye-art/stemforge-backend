@@ -116,7 +116,9 @@ IMPORTANT: Only suggest search terms and sources. Do NOT generate actual images/
         }
 
         console.error('No accessible Groq models found. Checked models:', errors.map(e => `${e.model}: ${e.message}`).join('; '));
-        throw new Error('AI generation failed: no accessible Groq models found.');
+        const noModelError = new Error('AI generation failed: no accessible Groq models found.');
+        noModelError.details = errors;
+        throw noModelError;
     }
 }
 

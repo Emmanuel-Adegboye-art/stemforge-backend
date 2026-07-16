@@ -22,9 +22,15 @@ function errorHandler(err, req, res, next) {
         });
     }
     
-    res.status(err.status || 500).json({
+    const response = {
         error: { message: err.message || 'Internal server error' }
-    });
+    };
+
+    if (err.details) {
+        response.error.details = err.details;
+    }
+
+    res.status(err.status || 500).json(response);
 }
 
 module.exports = errorHandler;
