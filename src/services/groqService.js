@@ -5,7 +5,7 @@ class GroqService {
         this.client = new Groq({ 
             apiKey: process.env.GROQ_API_KEY 
         });
-        this.model = 'llama-3.1-70b-versatile';
+        this.model = process.env.GROQ_MODEL || 'llama-3.1-7b';
     }
     
     async generateLessonPlan(data) {
