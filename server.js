@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
 require('dotenv').config();
 
 const app = express();
@@ -50,26 +49,11 @@ app.use((req, res) => {
 // Global error handler (must be last)
 app.use(errorHandler);
 
-// Connect to DB and start server
+// Start server
 const PORT = process.env.PORT || 5000;
-const mongoUri = process.env.MONGODB_URI;
 
-if (!mongoUri) {
-    console.error('❌ Missing MONGODB_URI environment variable.');
-    console.error('   Set MONGODB_URI in Render environment settings or provide it in a .env file for local development.');
-    process.exit(1);
-}
-
-mongoose.connect(mongoUri)
-    .then(() => {
-        console.log('✅ MongoDB connected');
-        app.listen(PORT, () => {
-            console.log(`🚀 Server running on port ${PORT}`);
-        });
-    })
-    .catch(err => {
-        console.error('❌ DB connection failed:', err);
-        process.exit(1);
-    });
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+});
 
 module.exports = app;
