@@ -5,7 +5,8 @@ class GroqService {
         this.client = new Groq({ 
             apiKey: process.env.GROQ_API_KEY 
         });
-        this.model = process.env.GROQ_MODEL || 'llama-3.1-7b';
+        // Use a safe default model; override with GROQ_MODEL in Render if needed.
+        this.model = process.env.GROQ_MODEL || 'llama-3.1';
     }
     
     async generateLessonPlan(data) {
