@@ -8,7 +8,10 @@ async function generateAI(req, res, next) {
             duration, 
             subject, 
             instructions, 
-            mode = 'lesson-plan' 
+            mode = 'lesson-plan',
+            term,
+            week,
+            additionalDetails
         } = req.body;
         
         // Validation
@@ -29,11 +32,11 @@ async function generateAI(req, res, next) {
         
         if (mode === 'lesson-note') {
             result = await groqService.generateLessonNote({ 
-                topic, grade, duration, subject, instructions 
+                topic, grade, duration, subject, instructions, term, week, additionalDetails
             });
         } else {
             result = await groqService.generateLessonPlan({ 
-                topic, grade, duration, subject, instructions 
+                topic, grade, duration, subject, instructions, term, week, additionalDetails
             });
         }
         

@@ -8,10 +8,8 @@ class GroqService {
         }
 
         this.client = new Groq({ apiKey });
-        this.model = process.env.GROQ_MODEL;
-        if (!this.model) {
-            throw new Error('Missing GROQ_MODEL environment variable');
-        }
+        this.model = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+        console.log(`Using Groq model: ${this.model}`);
     }
     
     async generateLessonPlan(data) {
@@ -125,7 +123,21 @@ IMPORTANT: Only suggest search terms and sources. Do NOT generate actual images/
                 response_format: { type: 'json_object' }
             });
 
-            return JSON.parse(completion.choices[0].message.content);
+            const rawContent = completion.choices[0]?.message?.content;
+            if (!rawContent) {
+                throw new Error('Groq returned an empty response.');
+            }
+
+            try {
+                return JSON.parse(rawContent);
+            } catch (parseError) {
+                const cleaned = rawContent
+                    .replace(/^```json\s*/i, '')
+                    .replace(/^```\s*/i, '')
+                    .replace(/\s*```$/i, '')
+                    .trim();
+                return JSON.parse(cleaned);
+            }
         } catch (error) {
             const errMsg = (error.message || '').toLowerCase();
             console.warn(`Groq model ${this.model} failed:`, errMsg || error);
