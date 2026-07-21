@@ -49,6 +49,11 @@ app.use((req, res) => {
 // Global error handler (must be last)
 app.use(errorHandler);
 
+// Add to server.js
+const classRoutes = require('./src/routes/classes');
+
+// ... after other route declarations ...
+app.use('/api/classes', classRoutes);
 // Start server
 const PORT = process.env.PORT || 5000;
 
