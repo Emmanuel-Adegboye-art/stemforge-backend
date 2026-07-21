@@ -58,11 +58,11 @@ const StudentSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
-    age: {
-        type: Number,
-        min: 3,
-        max: 25
-    },
+   // age: {
+   //     type: Number,
+  //      min: 3,
+ //       max: 25
+  //  },
     
     // ============================================
     // PARENT / GUARDIAN

@@ -13,7 +13,6 @@ const {
     getClassStats
 } = require('../controllers/classController');
 const { authenticate } = require('../middleware/auth');
-const { validateClass } = require('../middleware/validateRequest');
 
 // All routes require authentication
 router.use(authenticate);
@@ -28,11 +27,11 @@ router.get('/', getAllClasses);
 // GET class by ID
 router.get('/:id', getClassById);
 
-// POST create new class
-router.post('/', validateClass, createClass);
+// POST create new class (removed validateClass for now)
+router.post('/', createClass);
 
 // PUT update class
-router.put('/:id', validateClass, updateClass);
+router.put('/:id', updateClass);
 
 // DELETE class (soft delete)
 router.delete('/:id', deleteClass);
