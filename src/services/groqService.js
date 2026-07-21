@@ -25,179 +25,64 @@ class GroqService {
     }
     
     // ⭐ NEW: Build detailed prompt with all sections
-    buildDetailedLessonPlanPrompt(data) {
-        const { 
-            topic, grade, subject, duration, term, week, 
-            additionalDetails = {}, instructions 
-        } = data;
-        
-        const ad = additionalDetails;
-        const enabledSections = [];
-        const customInstructions = [];
-        
-        // Build list of enabled sections
-        if (ad.setInduction?.enabled) enabledSections.push('setInduction');
-        if (ad.priorKnowledge?.enabled) enabledSections.push('priorKnowledge');
-        if (ad.learningObjectives?.enabled) enabledSections.push('learningObjectives');
-        if (ad.learningOutcomes?.enabled) enabledSections.push('learningOutcomes');
-        if (ad.teachingActivities?.enabled) enabledSections.push('teachingActivities');
-        if (ad.formativeAssessment?.enabled) enabledSections.push('formativeAssessment');
-        if (ad.closure?.enabled) enabledSections.push('closure');
-        if (ad.differentiation?.enabled) enabledSections.push('differentiation');
-        if (ad.instructionalMaterials?.enabled) enabledSections.push('instructionalMaterials');
-        if (ad.vocabulary?.enabled) enabledSections.push('vocabulary');
-        if (ad.homework?.enabled) enabledSections.push('homework');
-        if (ad.realWorldApplication?.enabled) enabledSections.push('realWorldApplication');
-        if (ad.crossCurricular?.enabled) enabledSections.push('crossCurricular');
-        if (ad.discussionQuestions?.enabled) enabledSections.push('discussionQuestions');
-        if (ad.safetyProtocols?.enabled) enabledSections.push('safetyProtocols');
-        if (ad.engineeringDesignProcess?.enabled) enabledSections.push('engineeringDesignProcess');
-        
-        // Add custom instructions for user-provided content
-        if (ad.setInduction?.custom) {
-            customInstructions.push(`Use this EXACT set induction: "${ad.setInduction.custom}"`);
-        }
-        if (ad.priorKnowledge?.custom) {
-            customInstructions.push(`Use this EXACT prior knowledge list: "${ad.priorKnowledge.custom}"`);
-        }
-        if (ad.vocabulary?.custom) {
-            customInstructions.push(`Include these EXACT vocabulary terms: "${ad.vocabulary.custom}"`);
-        }
-        if (ad.instructionalMaterials?.custom) {
-            customInstructions.push(`Use this EXACT materials list: "${ad.instructionalMaterials.custom}"`);
-        }
-        
-        // Add custom JSON fields
-        if (ad.customFields && Object.keys(ad.customFields).length > 0) {
-            customInstructions.push(`Also include these custom sections: ${JSON.stringify(ad.customFields)}`);
-        }
-        
-        return `You are an expert STEM educator and curriculum designer with 20+ years of experience. Create a COMPREHENSIVE, DETAILED lesson plan following exact professional standards.
+buildDetailedLessonPlanPrompt(data) {
+    const { 
+        topic, grade, subject, duration, term, week, 
+        additionalDetails = {}, instructions 
+    } = data;
+    
+    const ad = additionalDetails;
+    const sections = [];
+    
+    // Build list of enabled sections (compact)
+    if (ad.setInduction?.enabled) sections.push('setInduction');
+    if (ad.priorKnowledge?.enabled) sections.push('priorKnowledge');
+    if (ad.learningObjectives?.enabled) sections.push('learningObjectives');
+    if (ad.learningOutcomes?.enabled) sections.push('learningOutcomes');
+    if (ad.teachingActivities?.enabled) sections.push('teachingActivities');
+    if (ad.formativeAssessment?.enabled) sections.push('formativeAssessment');
+    if (ad.closure?.enabled) sections.push('closure');
+    if (ad.differentiation?.enabled) sections.push('differentiation');
+    if (ad.instructionalMaterials?.enabled) sections.push('instructionalMaterials');
+    if (ad.vocabulary?.enabled) sections.push('vocabulary');
+    if (ad.homework?.enabled) sections.push('homework');
+    if (ad.realWorldApplication?.enabled) sections.push('realWorldApplication');
+    if (ad.crossCurricular?.enabled) sections.push('crossCurricular');
+    if (ad.discussionQuestions?.enabled) sections.push('discussionQuestions');
+    if (ad.safetyProtocols?.enabled) sections.push('safetyProtocols');
+    if (ad.engineeringDesignProcess?.enabled) sections.push('engineeringDesignProcess');
+    
+    // Custom instructions (only if user provided them)
+    const customNotes = [];
+    if (ad.setInduction?.custom) customNotes.push(`Set Induction: "${ad.setInduction.custom}"`);
+    if (ad.priorKnowledge?.custom) customNotes.push(`Prior Knowledge: "${ad.priorKnowledge.custom}"`);
+    if (ad.vocabulary?.custom) customNotes.push(`Vocabulary: "${ad.vocabulary.custom}"`);
+    if (ad.instructionalMaterials?.custom) customNotes.push(`Materials: "${ad.instructionalMaterials.custom}"`);
+    
+    // Shorter, more focused prompt
+    return `You are an expert STEM educator. Create a detailed lesson plan.
 
-# LESSON CONTEXT
+CONTEXT:
 - Subject: ${subject}
-- Grade Level: ${grade}
-- Term: ${term || 'Not specified'}
-- Week: ${week || 'Not specified'}
+- Grade: ${grade}
 - Topic: ${topic}
 - Duration: ${duration} minutes
-${instructions ? `- Teacher Instructions: ${instructions}` : ''}
+${term ? `- Term: ${term}` : ''}
+${week ? `- Week: ${week}` : ''}
+${instructions ? `- Notes: ${instructions}` : ''}
 
-# SECTIONS TO INCLUDE
-Generate ONLY these sections: ${enabledSections.join(', ')}
+INCLUDE ONLY THESE SECTIONS: ${sections.join(', ')}
 
-${customInstructions.length > 0 ? '# CUSTOM REQUIREMENTS\n' + customInstructions.join('\n') : ''}
+${customNotes.length > 0 ? 'CUSTOM CONTENT (use exactly):\n' + customNotes.join('\n') : ''}
 
-# CRITICAL REQUIREMENTS
-1. Be SPECIFIC and DETAILED - no generic placeholders
-2. Use real examples relevant to the topic
-3. Include exact timing for activities
-4. Make set induction engaging (use analogy, question, or hook)
-5. Activities should have BOTH teacher actions AND student actions
-6. Closure must include: recap, exit ticket, AND next lesson preview
-7. Differentiation must address: advanced, struggling, AND extension
-
-# OUTPUT FORMAT
-Return valid JSON with this exact structure (include only enabled sections):
-
+Return valid JSON:
 {
-  "metadata": {
-    "title": "Engaging lesson title",
-    "subject": "${subject}",
-    "classLevel": "${grade}",
-    "term": "${term || ''}",
-    "week": "${week || ''}",
-    "duration": "${duration} minutes"
-  }${ad.learningObjectives?.enabled ? `,
-  "learningObjectives": [
-    "Specific objective 1 (what teacher will achieve)",
-    "Specific objective 2",
-    "Specific objective 3"
-  ]` : ''}${ad.learningOutcomes?.enabled ? `,
-  "learningOutcomes": [
-    "Students will be able to [specific skill]",
-    "Students will be able to [specific skill]",
-    "Students will be able to [specific skill]"
-  ]` : ''}${ad.priorKnowledge?.enabled ? `,
-  "priorKnowledge": [
-    "Specific prerequisite 1",
-    "Specific prerequisite 2"
-  ]` : ''}${ad.instructionalMaterials?.enabled ? `,
-  "instructionalMaterials": [
-    "Specific material/tool 1",
-    "Specific material/tool 2"
-  ]` : ''}${ad.setInduction?.enabled ? `,
-  "setInduction": {
-    "analogy": "Engaging analogy comparing topic to something familiar",
-    "recall": "Question to recall previous learning",
-    "hook": "Exciting statement to spark interest",
-    "duration": 5
-  }` : ''}${ad.teachingActivities?.enabled ? `,
-  "teachingActivities": [
-    {
-      "name": "Activity 1: Descriptive Name",
-      "duration": "8 mins",
-      "teacherActivity": "Specific actions the teacher will take",
-      "studentActivity": "Specific actions students will do"
-    },
-    {
-      "name": "Activity 2: Descriptive Name",
-      "duration": "12 mins",
-      "teacherActivity": "...",
-      "studentActivity": "..."
-    }
-  ]` : ''}${ad.formativeAssessment?.enabled ? `,
-  "formativeAssessment": [
-    "Specific checkpoint 1 with question/task",
-    "Specific checkpoint 2",
-    "Specific checkpoint 3"
-  ]` : ''}${ad.closure?.enabled ? `,
-  "closure": {
-    "recap": "Summary of what was learned",
-    "exitTicket": "Question students must answer before leaving",
-    "preview": "What will be covered next lesson",
-    "duration": 3
-  }` : ''}${ad.differentiation?.enabled ? `,
-  "differentiation": {
-    "advanced": "Challenge for fast learners",
-    "struggling": "Support for students who need help",
-    "extension": "Optional deeper exploration"
-  }` : ''}${ad.vocabulary?.enabled ? `,
-  "vocabulary": [
-    {"term": "Word", "definition": "Clear definition"},
-    {"term": "Word", "definition": "Clear definition"}
-  ]` : ''}${ad.homework?.enabled ? `,
-  "homework": [
-    "Specific task 1",
-    "Specific task 2"
-  ]` : ''}${ad.realWorldApplication?.enabled ? `,
-  "realWorldApplication": [
-    "Career/industry connection 1",
-    "Career/industry connection 2"
-  ]` : ''}${ad.crossCurricular?.enabled ? `,
-  "crossCurricular": [
-    "Link to Mathematics",
-    "Link to Science"
-  ]` : ''}${ad.discussionQuestions?.enabled ? `,
-  "discussionQuestions": [
-    "Thought-provoking question 1",
-    "Thought-provoking question 2"
-  ]` : ''}${ad.safetyProtocols?.enabled ? `,
-  "safetyProtocols": [
-    "Specific safety rule 1",
-    "Specific safety rule 2"
-  ]` : ''}${ad.engineeringDesignProcess?.enabled ? `,
-  "engineeringDesignProcess": [
-    "Ask: Identify the problem",
-    "Imagine: Brainstorm solutions",
-    "Plan: Design approach",
-    "Create: Build prototype",
-    "Test & Improve: Evaluate and refine"
-  ]` : ''}
+  "metadata": {"title": "", "subject": "${subject}", "classLevel": "${grade}", "term": "${term || ''}", "week": "${week || ''}", "duration": "${duration} minutes"}${ad.learningObjectives?.enabled ? ',\n  "learningObjectives": ["obj1", "obj2", "obj3"]' : ''}${ad.learningOutcomes?.enabled ? ',\n  "learningOutcomes": ["students will 1", "students will 2"]' : ''}${ad.priorKnowledge?.enabled ? ',\n  "priorKnowledge": ["prereq1", "prereq2"]' : ''}${ad.instructionalMaterials?.enabled ? ',\n  "instructionalMaterials": ["item1", "item2"]' : ''}${ad.setInduction?.enabled ? ',\n  "setInduction": {"analogy": "...", "hook": "...", "duration": 5}' : ''}${ad.teachingActivities?.enabled ? ',\n  "teachingActivities": [{"name": "", "duration": "", "teacherActivity": "", "studentActivity": ""}]' : ''}${ad.formativeAssessment?.enabled ? ',\n  "formativeAssessment": ["checkpoint1", "checkpoint2"]' : ''}${ad.closure?.enabled ? ',\n  "closure": {"recap": "", "exitTicket": "", "preview": "", "duration": 3}' : ''}${ad.differentiation?.enabled ? ',\n  "differentiation": {"advanced": "", "struggling": "", "extension": ""}' : ''}${ad.vocabulary?.enabled ? ',\n  "vocabulary": [{"term": "", "definition": ""}]' : ''}${ad.homework?.enabled ? ',\n  "homework": ["task1", "task2"]' : ''}${ad.realWorldApplication?.enabled ? ',\n  "realWorldApplication": ["app1", "app2"]' : ''}${ad.crossCurricular?.enabled ? ',\n  "crossCurricular": ["link1", "link2"]' : ''}${ad.discussionQuestions?.enabled ? ',\n  "discussionQuestions": ["Q1", "Q2"]' : ''}${ad.safetyProtocols?.enabled ? ',\n  "safetyProtocols": ["rule1", "rule2"]' : ''}${ad.engineeringDesignProcess?.enabled ? ',\n  "engineeringDesignProcess": ["Ask", "Imagine", "Plan", "Create", "Test"]' : ''}
 }
 
-IMPORTANT: Be detailed and specific. Use real examples, not generic placeholders.`;
-    }
+Be specific and detailed. Use real examples.`;
+}
+
     
     buildLessonNotePrompt({ topic, grade, subject, duration, instructions }) {
         return `You are an expert STEM educator. Create a detailed lesson note.
