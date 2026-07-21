@@ -236,7 +236,7 @@ IMPORTANT: Only suggest search terms and sources. Do NOT generate actual images/
                 ],
                 model: this.model,
                 temperature: 0.7,
-                max_tokens: 8000,
+                max_tokens: 4000,
                 response_format: { type: 'json_object' }
             });
 
