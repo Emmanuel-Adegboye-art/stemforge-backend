@@ -3,82 +3,11 @@ const { admin } = require('../config/firebase');
 const User = require('../models/User');
 
 exports.register = async (req, res, next) => {
-  try {
-    const { email, password, name, role, employeeId, department, hireDate } = req.body;
-
-    // ---------- Validation ----------
-    if (!email || !password || !name || !role) {
-      return res.status(400).json({
-        error: { message: 'Email, password, name and role are required' }
-      });
+  return res.status(410).json({
+    error: {
+      message: 'Account creation is now handled directly by the Firebase Client SDK on the frontend.'
     }
-
-    // 1. Create Firebase Auth user
-    const firebaseUser = await admin.auth().createUser({
-      email,
-      password,
-      displayName: name,
-      emailVerified: false
-    });
-
-    // 2. Send verification email - FIXED for Admin SDK
-    // admin.auth().createUser() returns UserRecord which has NO sendEmailVerification()
-    // We must generate a link instead
-    try {
-      const actionCodeSettings = {
-        url: `${process.env.FRONTEND_URL || 'http://localhost:5500'}/login.html`,
-        handleCodeInApp: false
-      };
-      await admin.auth().generateEmailVerificationLink(email, actionCodeSettings);
-    } catch (mailErr) {
-      console.warn('Verification link generation failed:', mailErr.message);
-    }
-
-    // 3. Create Firestore profile (users collection)
-    const profileData = {
-      firebaseUid: firebaseUser.uid,
-      email,
-      name,
-      role: role.toLowerCase(),
-      employeeId: employeeId || null,
-      department: department || null,
-      hireDate: hireDate || null,
-      emailVerified: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    try {
-      await admin.firestore().collection('users').doc(firebaseUser.uid).set(profileData);
-    } catch (fsErr) {
-      console.warn('Firestore profile save warning:', fsErr.message);
-    }
-
-    const userProfile = profileData;
-
-    // 4. Return minimal payload
-    res.status(201).json({
-      data: {
-        uid: firebaseUser.uid,
-        email: userProfile.email || email,
-        name: userProfile.name || name,
-        role: userProfile.role || role.toLowerCase(),
-        emailVerified: false
-      }
-    });
-  } catch (error) {
-    console.error('Register error:', error);
-    if (error.code === 'auth/email-already-exists') {
-      return res.status(400).json({ error: { message: 'Email already in use' } });
-    }
-    if (error.code === 'auth/invalid-email') {
-      return res.status(400).json({ error: { message: 'Invalid email format' } });
-    }
-    if (error.code === 'auth/weak-password') {
-      return res.status(400).json({ error: { message: 'Password too weak' } });
-    }
-    next(error);
-  }
+  });
 };
 
 exports.login = async (req, res, next) => {
