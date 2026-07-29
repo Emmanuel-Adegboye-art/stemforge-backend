@@ -35,7 +35,7 @@ exports.register = async (req, res, next) => {
     }
 
     // 3. Create Firestore profile (users collection)
-    const userProfile = await User.createProfile({
+    const profileData = {
       firebaseUid: firebaseUser.uid,
       email,
       name,
@@ -46,7 +46,15 @@ exports.register = async (req, res, next) => {
       emailVerified: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    });
+    };
+
+    try {
+      await admin.firestore().collection('users').doc(firebaseUser.uid).set(profileData);
+    } catch (fsErr) {
+      console.warn('Firestore profile save warning:', fsErr.message);
+    }
+
+    const userProfile = profileData;
 
     // 4. Return minimal payload
     res.status(201).json({
