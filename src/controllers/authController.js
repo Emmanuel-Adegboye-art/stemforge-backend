@@ -217,3 +217,29 @@ exports.redeemPromo = async (req, res, next) => {
     next(error);
   }
 };
+
+// ─── Save / upsert profile (called from frontend after client-SDK registration) ──────
+exports.saveProfile = async (req, res, next) => {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ error: { message: 'Unauthorized' } });
+
+    const { name, role, employeeId, department, hireDate } = req.body;
+
+    const db = admin.firestore();
+    await db.collection('users').doc(uid).set({
+      uid,
+      name: name || null,
+      role: role || 'teacher',
+      employeeId: employeeId || null,
+      department: department || null,
+      hireDate: hireDate || null,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('saveProfile error:', err);
+    next(err);
+  }
+};
