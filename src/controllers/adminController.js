@@ -7,7 +7,7 @@ const { admin } = require('../config/firebase');
  */
 exports.createPromo = async (req, res, next) => {
   try {
-    const { description = '', uses = 1, days = 3, expiresAt } = req.body;
+    let { description = '', uses = 1, days = 3, expiresAt } = req.body;
 
     // Basic validation
     if (uses < 1) uses = 1;
@@ -34,5 +34,3 @@ exports.createPromo = async (req, res, next) => {
     next(error);
   }
 };
-
-module.exports = { createPromo };

@@ -20,6 +20,8 @@ const schemeRoutes = require('./src/routes/schemes');
 const authRoutes = require('./src/routes/auth');
 const attendanceRoutes = require('./src/routes/attendance');
 const subjectRoutes = require('./src/routes/subjects');
+const classRoutes = require('./src/routes/classes');
+const adminRoutes = require('./src/routes/admin');
 const errorHandler = require('./src/middleware/errorHandler');
 
 // Health check
@@ -40,6 +42,8 @@ app.use(schemeRoutes);
 app.use(authRoutes);
 app.use(attendanceRoutes);
 app.use(subjectRoutes);
+app.use('/api/classes', classRoutes);
+app.use(adminRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -49,11 +53,6 @@ app.use((req, res) => {
 // Global error handler (must be last)
 app.use(errorHandler);
 
-// Add to server.js
-const classRoutes = require('./src/routes/classes');
-
-// ... after other route declarations ...
-app.use('/api/classes', classRoutes);
 // Start server
 const PORT = process.env.PORT || 5000;
 
