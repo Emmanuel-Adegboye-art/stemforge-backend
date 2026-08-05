@@ -1,0 +1,20 @@
+name: Startup check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  boot:
+    runs-on: ubuntu-latest
+    env:
+      GROQ_API_KEY: dummy-key-for-boot-check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      # Boots the app and asserts every router is reachable (not shadowed by the 404 handler).
+      - run: node scripts/check-routes.mjs

@@ -53,6 +53,15 @@ app.use((req, res) => {
 // Global error handler (must be last)
 app.use(errorHandler);
 
+// Anything registered past the catch-all above is unreachable, so seal the stack:
+// a later app.use() throws at startup instead of silently 404ing in production.
+app.use = () => {
+    throw new Error(
+        'Cannot register middleware after the 404 handler — it would be unreachable. ' +
+        'Move this app.use() call above the "404 handler" section of server.js.'
+    );
+};
+
 // Start server
 const PORT = process.env.PORT || 5000;
 
