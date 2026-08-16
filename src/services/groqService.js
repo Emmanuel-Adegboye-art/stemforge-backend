@@ -1,6 +1,9 @@
 // src/services/groqService.js
 const Groq = require('groq-sdk');
 
+const DEFAULT_MODEL = 'openai/gpt-oss-20b';
+const FALLBACK_MODELS = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b'];
+
 class GroqService {
     constructor() {
         const apiKey = process.env.GROQ_API_KEY;
@@ -9,8 +12,7 @@ class GroqService {
         }
 
         this.client = new Groq({ apiKey });
-        // Use a known working model
-        this.model = process.env.GROQ_MODEL || 'llama3-8b-8192';
+        this.model = process.env.GROQ_MODEL || DEFAULT_MODEL;
         console.log(`Using Groq model: ${this.model}`);
     }
     
@@ -272,11 +274,7 @@ Generate ALL terms for grades ${startGrade} through ${endGrade}. Be specific and
         return await this.callGroqWithModel(prompt, this.model);
     } catch (error) {
         // If primary model fails, try fallbacks
-        const fallbackModels = [
-            'llama-3.1-8b-instant',
-            'llama-3.3-70b-versatile',
-            'mixtral-8x7b-32768'
-        ];
+        const fallbackModels = FALLBACK_MODELS;
         
         for (const fallbackModel of fallbackModels) {
             if (fallbackModel === this.model) continue; // Skip the one that already failed
@@ -305,10 +303,11 @@ async callGroqWithModel(prompt, modelName) {
         temperature: 0.7,
         max_tokens: 4000
     };
-    
+
     if (modelName.includes('llama') || modelName.includes('mixtral')) {
         requestBody.response_format = { type: 'json_object' };
     }
+    
     
     const completion = await this.client.chat.completions.create(requestBody);
     const rawContent = completion.choices[0]?.message?.content;
