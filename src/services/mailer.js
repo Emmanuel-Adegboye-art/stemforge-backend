@@ -23,9 +23,17 @@ function makeTransporter(user, pass) {
         console.warn(`⚠️  Mailer: missing credentials for ${user || 'unknown'} – email skipped`);
         return null;
     }
+    const cleanUser = String(user).trim();
+    const cleanPass = String(pass).replace(/\s+/g, '').trim();
+
     return nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user, pass }
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+            user: cleanUser,
+            pass: cleanPass
+        }
     });
 }
 
@@ -52,8 +60,18 @@ function adminTransport() {
 // ── Generic send helper ───────────────────────────────────────────
 
 async function send(transport, mail) {
-    if (!transport) return { skipped: true };
-    return transport.sendMail(mail);
+    if (!transport) {
+        console.warn('⚠️  Mailer: skipped send (no transport available)');
+        return { skipped: true };
+    }
+    try {
+        const info = await transport.sendMail(mail);
+        console.log(`📧 Email delivered to ${mail.to} (id: ${info.messageId})`);
+        return info;
+    } catch (err) {
+        console.error(`❌ Mailer delivery failed to ${mail.to}:`, err.message);
+        throw err;
+    }
 }
 
 // ── Generic email (kept for backwards compatibility) ──────────────
@@ -146,9 +164,12 @@ async function sendFeedbackNotification(feedback) {
       </div>
     </div>`;
 
+    const adminEmail = process.env.ADMIN_GMAIL_USER || 'stemforgetechnical@gmail.com';
+
     return send(t, {
         from:    `"STEM Forge Feedback" <${supportEmail}>`,
         to:      supportEmail,
+        cc:      adminEmail,
         replyTo: feedback.email,
         subject: `📬 New Feedback: ${feedback.subject}`,
         html,
