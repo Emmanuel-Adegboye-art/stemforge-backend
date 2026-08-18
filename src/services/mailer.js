@@ -1,105 +1,59 @@
 /**
- * Gmail SMTP mailer using Nodemailer.
- *
- * ── Setup (one‑time) ──────────────────────────────────────────────
- * 1. Enable 2‑Step Verification on EACH Gmail account
- * 2. Create an App Password per account at:
- *    https://myaccount.google.com/apppasswords
+ * Resend-based mailer for STEM Forge.
  *
  * ── Env vars required on Render ──────────────────────────────────
- *   SUPPORT_GMAIL_USER        – supportstemforge@gmail.com
- *   SUPPORT_GMAIL_APP_PASS    – 16‑digit App Password for support account
- *   ADMIN_GMAIL_USER          – stemforgetechnical@gmail.com
- *   ADMIN_GMAIL_APP_PASS      – 16‑digit App Password for admin account
- *   FRONTEND_URL              – e.g. https://stem-forge.vercel.app
+ *   RESEND_API_KEY   – API key from https://resend.com/api-keys
+ *   SUPPORT_EMAIL    – inbox to receive feedback (e.g. supportstemforge@gmail.com)
+ *   ADMIN_EMAIL      – inbox to receive password resets (e.g. stemforgetechnical@gmail.com)
+ *   FRONTEND_URL     – e.g. https://stem-forge-frontend.vercel.app
  */
 
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// ── Transporter factory ───────────────────────────────────────────
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-function makeTransporter(user, pass) {
-    if (!user || !pass) {
-        console.warn(`⚠️  Mailer: missing credentials for ${user || 'unknown'} – email skipped`);
-        return null;
-    }
-    const cleanUser = String(user).trim();
-    const cleanPass = String(pass).replace(/\s+/g, '').trim();
+// Sender address — Resend free tier sends from onboarding@resend.dev
+// When you add a custom domain on Resend, change this to e.g. support@stemforge.com
+const FROM_SUPPORT = 'STEM Forge Support <onboarding@resend.dev>';
+const FROM_ADMIN   = 'STEM Forge <onboarding@resend.dev>';
 
-    return nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: {
-            user: cleanUser,
-            pass: cleanPass
-        }
-    });
-}
+// Delivery targets — read from env or fall back to hard-coded addresses
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL
+    || process.env.SUPPORT_GMAIL_USER
+    || 'supportstemforge@gmail.com';
 
-// Lazy singletons
-let _supportTransport = null;
-let _adminTransport   = null;
-
-function supportTransport() {
-    if (_supportTransport) return _supportTransport;
-    const user = process.env.SUPPORT_GMAIL_USER || process.env.GMAIL_USER || 'supportstemforge@gmail.com';
-    const pass = process.env.SUPPORT_GMAIL_APP_PASS || process.env.GMAIL_APP_PASSWORD;
-    _supportTransport = makeTransporter(user, pass);
-    return _supportTransport;
-}
-
-function adminTransport() {
-    if (_adminTransport) return _adminTransport;
-    const user = process.env.ADMIN_GMAIL_USER || process.env.GMAIL_USER || 'stemforgetechnical@gmail.com';
-    const pass = process.env.ADMIN_GMAIL_APP_PASS || process.env.GMAIL_APP_PASSWORD;
-    _adminTransport = makeTransporter(user, pass);
-    return _adminTransport;
-}
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL
+    || process.env.ADMIN_GMAIL_USER
+    || 'stemforgetechnical@gmail.com';
 
 // ── Generic send helper ───────────────────────────────────────────
 
-async function send(transport, mail) {
-    if (!transport) {
-        console.warn('⚠️  Mailer: skipped send (no transport available)');
-        return { skipped: true };
-    }
-    try {
-        const info = await transport.sendMail(mail);
-        console.log(`📧 Email delivered to ${mail.to} (id: ${info.messageId})`);
-        return info;
-    } catch (err) {
-        console.error(`❌ Mailer delivery failed to ${mail.to}:`, err.message);
-        throw err;
-    }
-}
-
-// ── Generic email (kept for backwards compatibility) ──────────────
-
-async function sendEmail({ to, from, subject, html, text, replyTo }) {
-    const t = supportTransport();
-    if (!t) return { skipped: true };
-    return t.sendMail({
-        from: from || `"STEM Forge Support" <${process.env.SUPPORT_GMAIL_USER}>`,
-        to, subject, html,
-        text: text || subject,
-        replyTo
+async function sendEmail({ to, subject, html, text }) {
+    const { data, error } = await resend.emails.send({
+        from:    FROM_SUPPORT,
+        to:      Array.isArray(to) ? to : [to],
+        subject,
+        html:    html  || `<p>${text}</p>`,
+        text:    text  || subject,
     });
+    if (error) {
+        console.error('❌ Resend sendEmail error:', error);
+        throw new Error(error.message);
+    }
+    console.log(`📧 Email sent to ${to} (id: ${data.id})`);
+    return data;
 }
 
 // ── PASSWORD RESET ────────────────────────────────────────────────
 
 /**
  * Send a password-reset link to the user.
- * The admin account (stemforgetechnical@gmail.com) is CC'd for audit.
  *
  * @param {string} userEmail – the user's registered email address
  * @param {string} userName  – the user's display name
  * @param {string} resetLink – the full reset URL with token
  */
 async function sendPasswordResetEmail(userEmail, userName, resetLink) {
-    const t = adminTransport();
-    const adminEmail = process.env.ADMIN_GMAIL_USER || process.env.GMAIL_USER || 'stemforgetechnical@gmail.com';
     const html = `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
       <div style="background:#F59E0B;padding:28px 32px">
@@ -127,27 +81,30 @@ async function sendPasswordResetEmail(userEmail, userName, resetLink) {
       </div>
     </div>`;
 
-    return send(t, {
-        from:    `"STEM Forge" <${adminEmail}>`,
-        to:      userEmail,
-        cc:      adminEmail,
+    const { data, error } = await resend.emails.send({
+        from:    FROM_ADMIN,
+        to:      [userEmail],
+        cc:      [ADMIN_EMAIL],
         subject: '🔑 Reset your STEM Forge password',
         html,
-        text: `Reset your password: ${resetLink}\n\nThis link expires in 1 hour.`
+        text:    `Reset your password: ${resetLink}\n\nThis link expires in 1 hour.`
     });
+    if (error) {
+        console.error('❌ Resend sendPasswordResetEmail error:', error);
+        throw new Error(error.message);
+    }
+    console.log(`📧 Password reset email sent to ${userEmail} (id: ${data.id})`);
+    return data;
 }
 
 // ── FEEDBACK ──────────────────────────────────────────────────────
 
 /**
  * Notify the support team of a new feedback submission.
- * Sent FROM supportstemforge@gmail.com TO supportstemforge@gmail.com (inbox notification).
  *
  * @param {{ name, email, subject, description }} feedback
  */
 async function sendFeedbackNotification(feedback) {
-    const t = supportTransport();
-    const supportEmail = process.env.SUPPORT_GMAIL_USER || process.env.GMAIL_USER || 'supportstemforge@gmail.com';
     const html = `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
       <div style="background:#0F172A;padding:28px 32px">
@@ -164,17 +121,21 @@ async function sendFeedbackNotification(feedback) {
       </div>
     </div>`;
 
-    const adminEmail = process.env.ADMIN_GMAIL_USER || 'stemforgetechnical@gmail.com';
-
-    return send(t, {
-        from:    `"STEM Forge Feedback" <${supportEmail}>`,
-        to:      supportEmail,
-        cc:      adminEmail,
-        replyTo: feedback.email,
-        subject: `📬 New Feedback: ${feedback.subject}`,
+    const { data, error } = await resend.emails.send({
+        from:     FROM_SUPPORT,
+        to:       [SUPPORT_EMAIL],
+        cc:       [ADMIN_EMAIL],
+        reply_to: feedback.email,
+        subject:  `📬 New Feedback: ${feedback.subject}`,
         html,
         text: `New feedback from ${feedback.name} (${feedback.email})\n\nSubject: ${feedback.subject}\n\n${feedback.description}`
     });
+    if (error) {
+        console.error('❌ Resend sendFeedbackNotification error:', error);
+        throw new Error(error.message);
+    }
+    console.log(`📧 Feedback notification sent (id: ${data.id})`);
+    return data;
 }
 
 /**
@@ -185,8 +146,6 @@ async function sendFeedbackNotification(feedback) {
  * @param {string} subject  – their feedback subject (for context)
  */
 async function sendFeedbackConfirmation(toEmail, toName, subject) {
-    const t = supportTransport();
-    const supportEmail = process.env.SUPPORT_GMAIL_USER || process.env.GMAIL_USER || 'supportstemforge@gmail.com';
     const html = `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
       <div style="background:#F59E0B;padding:28px 32px">
@@ -211,13 +170,19 @@ async function sendFeedbackConfirmation(toEmail, toName, subject) {
       </div>
     </div>`;
 
-    return send(t, {
-        from:    `"STEM Forge Support" <${supportEmail}>`,
-        to:      toEmail,
+    const { data, error } = await resend.emails.send({
+        from:    FROM_SUPPORT,
+        to:      [toEmail],
         subject: `✅ We received your feedback: "${subject}"`,
         html,
         text: `Hi ${toName},\n\nThank you for your feedback about "${subject}".\nWe'll reply within 48 hours.\n\n— STEM Forge Support`
     });
+    if (error) {
+        console.error('❌ Resend sendFeedbackConfirmation error:', error);
+        throw new Error(error.message);
+    }
+    console.log(`📧 Confirmation sent to ${toEmail} (id: ${data.id})`);
+    return data;
 }
 
 module.exports = {
@@ -226,4 +191,6 @@ module.exports = {
     sendFeedbackNotification,
     sendFeedbackConfirmation
 };
+
+
 
