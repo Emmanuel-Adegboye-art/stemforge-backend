@@ -4,9 +4,6 @@ const { sendFeedbackNotification, sendFeedbackConfirmation } = require('../servi
 /**
  * POST /api/feedback
  * Public endpoint — no auth required.
- * Saves feedback to Firebase Firestore and sends two emails:
- *   1. Notification to supportstemforge@gmail.com
- *   2. Auto-reply confirmation to the user
  */
 async function submitFeedback(req, res) {
     try {
@@ -24,44 +21,51 @@ async function submitFeedback(req, res) {
             email: email.trim().toLowerCase(),
             subject: subject.trim(),
             description: description.trim(),
-            status: "new",         // Filter by: status == "new" to see unread
-            read: false,           // Set to true in Firebase console to mark as seen
+            status: "new",
+            read: false,
             createdAt: new Date().toISOString()
         };
+
+        console.log('📝 Feedback received from:', feedbackData.email);
 
         // Save to Firebase Firestore
         try {
             const db = admin.firestore();
             await db.collection('feedbacks').add(feedbackData);
+            console.log('✅ Feedback saved to Firestore');
         } catch (dbErr) {
-            console.warn('⚠️ Could not write to Firestore (proceeding with emails):', dbErr.message);
+            console.warn('⚠️ Firestore write failed:', dbErr.message);
         }
 
-        // Send emails (non-blocking)
-        try {
-            Promise.allSettled([
-                sendFeedbackNotification(feedbackData),
-                sendFeedbackConfirmation(feedbackData.email, feedbackData.name, feedbackData.subject)
-            ]).then(results => {
-                results.forEach((r, i) => {
-                    if (r.status === "rejected") {
-                        console.error(`Feedback email ${i + 1} failed:`, r.reason?.message || r.reason);
-                    }
-                });
-            }).catch(e => console.error('Email dispatch error:', e));
-        } catch (e) {
-            console.error('Email trigger error:', e);
-        }
-
-        return res.status(201).json({
+        // Respond immediately so client doesn't wait
+        res.status(201).json({
             success: true,
             message: "Feedback received. We will reply within 48 hours."
         });
+
+        // Send notification email AFTER responding (fire-and-forget with logging)
+        console.log('📧 Sending feedback notification email...');
+        try {
+            const result = await sendFeedbackNotification(feedbackData);
+            console.log('✅ Notification email sent:', result?.id || JSON.stringify(result));
+        } catch (emailErr) {
+            console.error('❌ Notification email FAILED:', emailErr.message);
+        }
+
+        // Send confirmation to user (skipped on free tier for non-registered emails)
+        try {
+            await sendFeedbackConfirmation(feedbackData.email, feedbackData.name, feedbackData.subject);
+        } catch (confirmErr) {
+            console.warn('⚠️ Confirmation email skipped/failed:', confirmErr.message);
+        }
+
     } catch (err) {
         console.error("submitFeedback error:", err);
-        return res.status(500).json({
-            error: { message: "Failed to submit feedback. Please try again." }
-        });
+        if (!res.headersSent) {
+            return res.status(500).json({
+                error: { message: "Failed to submit feedback. Please try again." }
+            });
+        }
     }
 }
 
