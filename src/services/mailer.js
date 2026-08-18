@@ -17,14 +17,14 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_SUPPORT = 'STEM Forge Support <onboarding@resend.dev>';
 const FROM_ADMIN   = 'STEM Forge <onboarding@resend.dev>';
 
-// Delivery targets — read from env or fall back to hard-coded addresses
+// On Resend free tier, you can ONLY deliver to the email used to sign up (supportstemforge@gmail.com).
+// All notifications go there. When you verify a domain, you can send to any address.
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL
     || process.env.SUPPORT_GMAIL_USER
     || 'supportstemforge@gmail.com';
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL
-    || process.env.ADMIN_GMAIL_USER
-    || 'stemforgetechnical@gmail.com';
+// On free tier, CC to a different Gmail is blocked — route all alerts to SUPPORT_EMAIL
+const ADMIN_EMAIL = SUPPORT_EMAIL;
 
 // ── Generic send helper ───────────────────────────────────────────
 
@@ -169,6 +169,13 @@ async function sendFeedbackConfirmation(toEmail, toName, subject) {
         <p style="color:#9ca3af;font-size:12px;margin:0">STEM Forge Support · supportstemforge@gmail.com</p>
       </div>
     </div>`;
+
+    // On Resend free tier, can only deliver to supportstemforge@gmail.com
+    // Skip user confirmation if they used a different email — it would bounce
+    if (toEmail !== SUPPORT_EMAIL) {
+        console.log(`ℹ️  Skipping confirmation to ${toEmail} (Resend free tier: unverified recipient)`);
+        return { skipped: true };
+    }
 
     const { data, error } = await resend.emails.send({
         from:    FROM_SUPPORT,
