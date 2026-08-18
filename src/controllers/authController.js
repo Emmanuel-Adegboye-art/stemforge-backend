@@ -208,14 +208,11 @@ exports.forgotPassword = async (req, res, next) => {
         const baseUrl = process.env.FRONTEND_URL || 'https://stem-forge-frontend.vercel.app';
         const resetLink = `${baseUrl.replace(/\/+$/, '')}/reset-password.html?token=${token}`;
 
-        // Send reset email via admin mailer (stemforgetechnical@gmail.com)
-        try {
-            await sendPasswordResetEmail(email, userRecord.displayName || userRecord.email, resetLink);
-        } catch (mailErr) {
-            console.error('Password reset email error:', mailErr.message);
-        }
+        // Send reset email via admin mailer (stemforgetechnical@gmail.com) non-blocking
+        sendPasswordResetEmail(email, userRecord.displayName || userRecord.email, resetLink)
+            .catch(mailErr => console.error('Password reset email error:', mailErr.message));
 
-        res.json({ message: 'If that email exists, a reset link has been sent.' });
+        return res.json({ message: 'If that email exists, a reset link has been sent.' });
     } catch (err) {
         console.error('forgotPassword error:', err);
         next(err);
