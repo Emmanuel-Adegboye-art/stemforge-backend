@@ -1,4 +1,4 @@
-﻿// Back-End/src/controllers/authController.js
+// Back-End/src/controllers/authController.js
 const { admin } = require('../config/firebase');
 const User = require('../models/User');
 const { sendEmail, sendPasswordResetEmail } = require('../services/mailer');
@@ -204,21 +204,16 @@ exports.forgotPassword = async (req, res, next) => {
             used: false
         });
 
-        // Build the reset link (your front-end URL)
-        const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:8000'}/reset-password.html?token=${token}`;
-        const html = `
-            <p>Hello,</p>
-            <p>Someone (hopefully you) requested a password reset for your STEM Forge account.</p>
-            <p>Click the link below to set a new password. The link expires in <strong>1 hour</strong>.</p>
-            <p><a href="${resetLink}" style="background:#F59E0B;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block">Reset Password</a></p>
-            <p>If you didn’t request this, you can safely ignore the email.</p>
-            <p>— STEM Forge Team</p>`;
-        await sendEmail({
-            to: email,
-            from: process.env.MAIL_FROM_RESET || 'stemforgetechnical@gmail.com',
-            subject: '?? Reset your STEM Forge password',
-            html
-        });
+        // Build the reset link (front-end URL)
+        const baseUrl = process.env.FRONTEND_URL || 'https://stem-forge-frontend.vercel.app';
+        const resetLink = `${baseUrl.replace(/\/+$/, '')}/reset-password.html?token=${token}`;
+
+        // Send reset email via admin mailer (stemforgetechnical@gmail.com)
+        try {
+            await sendPasswordResetEmail(email, userRecord.displayName || userRecord.email, resetLink);
+        } catch (mailErr) {
+            console.error('Password reset email error:', mailErr.message);
+        }
 
         res.json({ message: 'If that email exists, a reset link has been sent.' });
     } catch (err) {

@@ -35,19 +35,17 @@ let _adminTransport   = null;
 
 function supportTransport() {
     if (_supportTransport) return _supportTransport;
-    _supportTransport = makeTransporter(
-        process.env.SUPPORT_GMAIL_USER,
-        process.env.SUPPORT_GMAIL_APP_PASS
-    );
+    const user = process.env.SUPPORT_GMAIL_USER || process.env.GMAIL_USER || 'supportstemforge@gmail.com';
+    const pass = process.env.SUPPORT_GMAIL_APP_PASS || process.env.GMAIL_APP_PASSWORD;
+    _supportTransport = makeTransporter(user, pass);
     return _supportTransport;
 }
 
 function adminTransport() {
     if (_adminTransport) return _adminTransport;
-    _adminTransport = makeTransporter(
-        process.env.ADMIN_GMAIL_USER,
-        process.env.ADMIN_GMAIL_APP_PASS
-    );
+    const user = process.env.ADMIN_GMAIL_USER || process.env.GMAIL_USER || 'stemforgetechnical@gmail.com';
+    const pass = process.env.ADMIN_GMAIL_APP_PASS || process.env.GMAIL_APP_PASSWORD;
+    _adminTransport = makeTransporter(user, pass);
     return _adminTransport;
 }
 

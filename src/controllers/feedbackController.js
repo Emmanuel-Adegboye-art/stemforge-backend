@@ -36,17 +36,21 @@ async function submitFeedback(req, res) {
             console.warn('⚠️ Could not write to Firestore (proceeding with emails):', dbErr.message);
         }
 
-        // Send emails (non-blocking — we do not fail the response if email fails)
-        Promise.allSettled([
-            sendFeedbackNotification(feedback),
-            sendFeedbackConfirmation(email, name, subject)
-        ]).then(results => {
-            results.forEach((r, i) => {
-                if (r.status === "rejected") {
-                    console.error(`Feedback email ${i + 1} failed:`, r.reason?.message || r.reason);
-                }
-            });
-        });
+        // Send emails (non-blocking)
+        try {
+            Promise.allSettled([
+                sendFeedbackNotification(feedbackData),
+                sendFeedbackConfirmation(feedbackData.email, feedbackData.name, feedbackData.subject)
+            ]).then(results => {
+                results.forEach((r, i) => {
+                    if (r.status === "rejected") {
+                        console.error(`Feedback email ${i + 1} failed:`, r.reason?.message || r.reason);
+                    }
+                });
+            }).catch(e => console.error('Email dispatch error:', e));
+        } catch (e) {
+            console.error('Email trigger error:', e);
+        }
 
         return res.status(201).json({
             success: true,
@@ -61,3 +65,4 @@ async function submitFeedback(req, res) {
 }
 
 module.exports = { submitFeedback };
+
