@@ -81,6 +81,7 @@ async function sendEmail({ to, from, subject, html, text, replyTo }) {
  */
 async function sendPasswordResetEmail(userEmail, userName, resetLink) {
     const t = adminTransport();
+    const adminEmail = process.env.ADMIN_GMAIL_USER || process.env.GMAIL_USER || 'stemforgetechnical@gmail.com';
     const html = `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
       <div style="background:#F59E0B;padding:28px 32px">
@@ -109,9 +110,9 @@ async function sendPasswordResetEmail(userEmail, userName, resetLink) {
     </div>`;
 
     return send(t, {
-        from:    `"STEM Forge" <${process.env.ADMIN_GMAIL_USER}>`,
+        from:    `"STEM Forge" <${adminEmail}>`,
         to:      userEmail,
-        cc:      process.env.ADMIN_GMAIL_USER,   // admin always sees reset requests
+        cc:      adminEmail,
         subject: '🔑 Reset your STEM Forge password',
         html,
         text: `Reset your password: ${resetLink}\n\nThis link expires in 1 hour.`
@@ -128,6 +129,7 @@ async function sendPasswordResetEmail(userEmail, userName, resetLink) {
  */
 async function sendFeedbackNotification(feedback) {
     const t = supportTransport();
+    const supportEmail = process.env.SUPPORT_GMAIL_USER || process.env.GMAIL_USER || 'supportstemforge@gmail.com';
     const html = `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
       <div style="background:#0F172A;padding:28px 32px">
@@ -145,8 +147,8 @@ async function sendFeedbackNotification(feedback) {
     </div>`;
 
     return send(t, {
-        from:    `"STEM Forge Feedback" <${process.env.SUPPORT_GMAIL_USER}>`,
-        to:      process.env.SUPPORT_GMAIL_USER,
+        from:    `"STEM Forge Feedback" <${supportEmail}>`,
+        to:      supportEmail,
         replyTo: feedback.email,
         subject: `📬 New Feedback: ${feedback.subject}`,
         html,
@@ -163,6 +165,7 @@ async function sendFeedbackNotification(feedback) {
  */
 async function sendFeedbackConfirmation(toEmail, toName, subject) {
     const t = supportTransport();
+    const supportEmail = process.env.SUPPORT_GMAIL_USER || process.env.GMAIL_USER || 'supportstemforge@gmail.com';
     const html = `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
       <div style="background:#F59E0B;padding:28px 32px">
@@ -188,7 +191,7 @@ async function sendFeedbackConfirmation(toEmail, toName, subject) {
     </div>`;
 
     return send(t, {
-        from:    `"STEM Forge Support" <${process.env.SUPPORT_GMAIL_USER}>`,
+        from:    `"STEM Forge Support" <${supportEmail}>`,
         to:      toEmail,
         subject: `✅ We received your feedback: "${subject}"`,
         html,
