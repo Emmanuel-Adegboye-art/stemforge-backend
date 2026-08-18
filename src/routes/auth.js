@@ -1,23 +1,27 @@
 const express = require('express');
-const router = express.Router();
+const router  = express.Router();
 const {
-  register,
-  login,
-  getMe,
-  redeemPromo,
-  saveProfile
+    register,
+    login,
+    getMe,
+    redeemPromo,
+    saveProfile,
+    forgotPassword,
+    resetPassword
 } = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 
-// Public routes
+// ── Public ─────────────────────────────────────────
 router.post('/api/auth/register', register);
-router.post('/api/auth/login', login);
+router.post('/api/auth/login',    login);
 
-// Protected routes
-router.get('/api/auth/me', authenticate, getMe);
-router.post('/api/auth/profile', authenticate, saveProfile);
+// ── Password reset (public – no auth needed) ────────
+router.post('/api/auth/forgot-password', forgotPassword);
+router.post('/api/auth/reset-password',  resetPassword);
 
-// 🔑 Promo code redemption (protected – user must be logged in)
+// ── Protected ──────────────────────────────────────
+router.get( '/api/auth/me',           authenticate, getMe);
+router.post('/api/auth/profile',      authenticate, saveProfile);
 router.post('/api/auth/promo/redeem', authenticate, redeemPromo);
 
 module.exports = router;

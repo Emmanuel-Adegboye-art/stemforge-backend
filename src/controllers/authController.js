@@ -1,6 +1,7 @@
-// Back-End/src/controllers/authController.js
+﻿// Back-End/src/controllers/authController.js
 const { admin } = require('../config/firebase');
 const User = require('../models/User');
+const { sendEmail, sendPasswordResetEmail } = require('../services/mailer');
 
 exports.register = async (req, res, next) => {
   return res.status(410).json({
@@ -147,7 +148,7 @@ exports.redeemPromo = async (req, res, next) => {
   }
 };
 
-// ─── Save / upsert profile (called from frontend after client-SDK registration) ──────
+// â”€â”€â”€ Save / upsert profile (called from frontend after client-SDK registration) â”€â”€â”€â”€â”€â”€
 exports.saveProfile = async (req, res, next) => {
   try {
     const uid = req.user?.uid;
@@ -172,3 +173,84 @@ exports.saveProfile = async (req, res, next) => {
     next(err);
   }
 };
+// ====================================================================
+//  PASSWORD RESET
+// ====================================================================
+
+exports.forgotPassword = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ error: { message: 'Email is required' } });
+
+        // Generate a secure token + expiry (1 hour)
+        const crypto = require('crypto');
+        const token  = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+        // Look up the user
+        let userRecord;
+        try {
+            userRecord = await admin.auth().getUserByEmail(email);
+        } catch (err) {
+            // Don’t leak whether the email exists – return success anyway
+            return res.json({ message: 'If that email exists, a reset link has been sent.' });
+        }
+
+        // Store token in Firestore
+        await admin.firestore().collection('passwordResets').doc(token).set({
+            uid: userRecord.uid,
+            email,
+            expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+            used: false
+        });
+
+        // Build the reset link (your front-end URL)
+        const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:8000'}/reset-password.html?token=${token}`;
+        const html = `
+            <p>Hello,</p>
+            <p>Someone (hopefully you) requested a password reset for your STEM Forge account.</p>
+            <p>Click the link below to set a new password. The link expires in <strong>1 hour</strong>.</p>
+            <p><a href="${resetLink}" style="background:#F59E0B;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block">Reset Password</a></p>
+            <p>If you didn’t request this, you can safely ignore the email.</p>
+            <p>— STEM Forge Team</p>`;
+        await sendEmail({
+            to: email,
+            from: process.env.MAIL_FROM_RESET || 'stemforgetechnical@gmail.com',
+            subject: '?? Reset your STEM Forge password',
+            html
+        });
+
+        res.json({ message: 'If that email exists, a reset link has been sent.' });
+    } catch (err) {
+        console.error('forgotPassword error:', err);
+        next(err);
+    }
+};
+
+exports.resetPassword = async (req, res, next) => {
+    try {
+        const { token, newPassword } = req.body;
+        if (!token || !newPassword) return res.status(400).json({ error: { message: 'Token and new password are required' } });
+        if (newPassword.length < 6) return res.status(400).json({ error: { message: 'Password must be at least 6 characters' } });
+
+        const docRef = admin.firestore().collection('passwordResets').doc(token);
+        const snap   = await docRef.get();
+        if (!snap.exists) return res.status(400).json({ error: { message: 'Invalid or expired token' } });
+
+        const data = snap.data();
+        if (data.used) return res.status(400).json({ error: { message: 'This reset link has already been used' } });
+        if (data.expiresAt.toDate() < new Date()) return res.status(400).json({ error: { message: 'Reset link has expired' } });
+
+        // Update password in Firebase Auth
+        await admin.auth().updateUser(data.uid, { password: newPassword });
+
+        // Mark token as used
+        await docRef.update({ used: true });
+
+        res.json({ message: 'Password updated successfully' });
+    } catch (err) {
+        console.error('resetPassword error:', err);
+        next(err);
+    }
+};
+

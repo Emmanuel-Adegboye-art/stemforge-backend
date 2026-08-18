@@ -12,6 +12,7 @@ app.use(cors({
 app.use(express.json());
 
 // Import routes
+const feedbackRoutes = require('./src/routes/feedback');
 const generateRoutes = require('./src/routes/generate');
 const aiGenerateRoutes = require('./src/routes/ai-generate');
 const studentRoutes = require('./src/routes/students');
@@ -42,6 +43,7 @@ app.use(schemeRoutes);
 app.use(authRoutes);
 app.use(attendanceRoutes);
 app.use(subjectRoutes);
+app.use(feedbackRoutes);
 app.use('/api/classes', classRoutes);
 app.use(adminRoutes);
 
