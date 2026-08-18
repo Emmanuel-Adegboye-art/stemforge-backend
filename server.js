@@ -47,50 +47,6 @@ app.use(feedbackRoutes);
 app.use('/api/classes', classRoutes);
 app.use(adminRoutes);
 
-// ── DEBUG: email test (remove after confirming email works) ────────
-app.get('/api/debug/test-email', async (req, res) => {
-    const nodemailer = require('nodemailer');
-    const supportUser = process.env.SUPPORT_GMAIL_USER || 'supportstemforge@gmail.com';
-    const supportPass = (process.env.SUPPORT_GMAIL_APP_PASS || '').replace(/\s+/g, '').trim();
-
-    const report = {
-        SUPPORT_GMAIL_USER: supportUser,
-        SUPPORT_GMAIL_APP_PASS_length: supportPass.length,
-        SUPPORT_GMAIL_APP_PASS_set: !!supportPass,
-    };
-
-    if (!supportPass) {
-        return res.status(500).json({ error: 'SUPPORT_GMAIL_APP_PASS not set on Render', report });
-    }
-
-    const t = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: { user: supportUser, pass: supportPass }
-    });
-
-    try {
-        await t.verify();
-        const info = await t.sendMail({
-            from: `"STEM Forge Debug" <${supportUser}>`,
-            to: supportUser,
-            subject: '[STEM Forge] Debug Email Test',
-            text: 'SMTP is working correctly from Render.'
-        });
-        res.json({ success: true, messageId: info.messageId, report });
-    } catch (err) {
-        res.status(500).json({
-            success: false,
-            error: err.message,
-            code: err.code,
-            responseCode: err.responseCode,
-            command: err.command,
-            report
-        });
-    }
-});
-
 // 404 handler
 app.use((req, res) => {
     res.status(404).json({ error: { message: 'Endpoint not found' } });

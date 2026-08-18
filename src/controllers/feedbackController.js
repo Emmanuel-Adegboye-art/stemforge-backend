@@ -24,7 +24,8 @@ async function submitFeedback(req, res) {
             email: email.trim().toLowerCase(),
             subject: subject.trim(),
             description: description.trim(),
-            status: "new",
+            status: "new",         // Filter by: status == "new" to see unread
+            read: false,           // Set to true in Firebase console to mark as seen
             createdAt: new Date().toISOString()
         };
 
